@@ -1,0 +1,138 @@
+services:
+  db:
+    build: ./db
+    container_name: odoo_db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: odoo
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      # Recomendado: auth fuerte
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    command:
+      - postgres
+      - -c
+      - listen_addresses=${DB_LISTEN_ADDRESSES:-*}
+      - -c
+      - max_connections=${DB_MAX_CONNECTIONS:-200}
+      - -c
+      - port=${DB_PORT:-5432}
+      - -c
+      - shared_buffers=${DB_SHARED_BUFFERS:-4GB}
+      - -c
+      - work_mem=${DB_WORK_MEM:-32MB}
+      - -c
+      - maintenance_work_mem=${DB_MAINTENANCE_WORK_MEM:-1GB}
+      - -c
+      - effective_cache_size=${DB_EFFECTIVE_CACHE_SIZE:-10GB}
+      - -c
+      - effective_io_concurrency=${DB_EFFECTIVE_IO_CONCURRENCY:-0}
+      - -c
+      - synchronous_commit=${DB_SYNCHRONOUS_COMMIT:-off}
+      - -c
+      - wal_buffers=${DB_WAL_BUFFERS:-32MB}
+      - -c
+      - checkpoint_timeout=${DB_CHECKPOINT_TIMEOUT:-15min}
+      - -c
+      - checkpoint_completion_target=${DB_CHECKPOINT_COMPLETION_TARGET:-0.9}
+      - -c
+      - max_wal_size=${DB_MAX_WAL_SIZE:-1GB}
+      - -c
+      - min_wal_size=${DB_MIN_WAL_SIZE:-80MB}
+      - -c
+      - random_page_cost=${DB_RANDOM_PAGE_COST:-1.1}
+      - -c
+      - logging_collector=${DB_LOGGING_COLLECTOR:-on}
+      - -c
+      - log_destination=${DB_LOG_DESTINATION:-stderr}
+      - -c
+      - log_file_mode=${DB_LOG_FILE_MODE:-0640}
+      - -c
+      - "log_line_prefix=${DB_LOG_LINE_PREFIX:-%t}"
+      - -c
+      - log_timezone=${DB_LOG_TIMEZONE:-America/Santiago}
+      - -c
+      - datestyle=${DB_DATESTYLE:-iso,mdy}
+      - -c
+      - timezone=${DB_TIMEZONE:-America/Santiago}
+      - -c
+      - lc_messages=${DB_LC_MESSAGES:-es_CL.UTF-8}
+      - -c
+      - lc_monetary=${DB_LC_MONETARY:-es_CL.UTF-8}
+      - -c
+      - lc_numeric=${DB_LC_NUMERIC:-es_CL.UTF-8}
+      - -c
+      - lc_time=${DB_LC_TIME:-es_CL.UTF-8}
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+      - -c
+      - default_text_search_config=${DB_DEFAULT_TSEARCH:-pg_catalog.spanish}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  odoo:
+    build: ./odoo             # <— en vez de "image: odoo:${ODOO_VERSION}"
+    container_name: odoo_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: ${ODOO_DB_HOST}
+      PORT: ${ODOO_DB_PORT}
+      ODOO_DB_USER: ${ODOO_DB_USER}
+      ODOO_DB_PASSWORD: ${ODOO_DB_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      POSTGRES_DB: ${POSTGRES_DB:-odoo}
+      DB_NAME: ${ODOO_DB_NAME}
+      ADMIN_PASS: ${ODOO_ADMIN_PASS}
+      ADDONS_PATH: /mnt/extra-addons
+    volumes:
+      - odoo_data:/var/lib/odoo
+      # (opcional) además de l10n_cl_fe horneado, puedes montar tus addons propios:
+      # - ./odoo/addons:/mnt/extra-addons/_yours
+      #
+      # Si prefieres seguir usando tu entrypoint por volumen (sin tocar ENTRYPOINT de la imagen):
+      - ./odoo/entrypoint.sh:/entrypoint.sh
+    # Si usas el entrypoint por volumen:
+    entrypoint: ["/entrypoint.sh"]
+    # Si usaste ENTRYPOINT en el Dockerfile, puedes comentar la línea anterior.
+    ports:
+      - "8069:8069"
+
+  # Backups programados (usa pg_dump desde un contenedor liviano con cron)
+  pgbackup:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: odoo_pgbackup
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER}
+      PGDATABASE: ${POSTGRES_DB}
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      CRON_SCHEDULE: ${PG_BACKUP_CRON}
+      KEEP_DAYS: ${PG_BACKUP_KEEP_DAYS}
+    volumes:
+      - ./backups:/backups
+    command: >
+      bash -lc '
+        echo "${CRON_SCHEDULE} /usr/local/bin/pg_dump -h 127.0.0.1 -p $$PGPORT -U $$PGUSER -F c -f /backups/$$(date +\%Y-\%m-\%d_\%H-\%M)_$$PGDATABASE.dump $$PGDATABASE && find /backups -type f -mtime +$${KEEP_DAYS} -delete" > /etc/crontab &&
+        cron -f
+      '
+
+volumes:
+  pg_data:
+  odoo_data:

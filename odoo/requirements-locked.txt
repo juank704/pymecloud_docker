@@ -1,0 +1,7 @@
+facturacion-electronica==0.19.3
+pdf417gen==0.8.1
+cryptography==38.0.4
+pyOpenSSL==23.0.0
+Pillow==10.0.0
+PyMuPDF==1.24.9
+pytesseract==0.3.10
