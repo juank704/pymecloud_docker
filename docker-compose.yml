@@ -96,9 +96,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-odoo}
       DB_NAME: ${ODOO_DB_NAME}
       ADMIN_PASS: ${ODOO_ADMIN_PASS}
-      ADDONS_PATH: /mnt/extra-addons
+      ADDONS_PATH: /opt/baked-addons,/mnt/extra-addons
     volumes:
       - odoo_data:/var/lib/odoo
+      - ./custom_addons:/mnt/extra-addons
       # (opcional) además de l10n_cl_fe horneado, puedes montar tus addons propios:
       # - ./odoo/addons:/mnt/extra-addons/_yours
       #
@@ -109,6 +110,7 @@ services:
     # Si usaste ENTRYPOINT en el Dockerfile, puedes comentar la línea anterior.
     ports:
       - "8069:8069"
+      - "8072:8072"
 
   # Backups programados (usa pg_dump desde un contenedor liviano con cron)
   pgbackup:
@@ -132,6 +134,16 @@ services:
         echo "${CRON_SCHEDULE} /usr/local/bin/pg_dump -h 127.0.0.1 -p $$PGPORT -U $$PGUSER -F c -f /backups/$$(date +\%Y-\%m-\%d_\%H-\%M)_$$PGDATABASE.dump $$PGDATABASE && find /backups -type f -mtime +$${KEEP_DAYS} -delete" > /etc/crontab &&
         cron -f
       '
+
+  nginx:
+    image: nginx:latest
+    container_name: odoo_nginx
+    depends_on:
+      - odoo
+    volumes:
+      - ./nginx/conf.nginx:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
 
 volumes:
   pg_data:
