@@ -1,6 +1,9 @@
 FROM odoo:16.0
 USER root
 
+# Instala debugpy (y cualquier lib de desarrollo que uses)
+RUN pip3 install --no-cache-dir debugpy
+
 # ---------- Paquetes del sistema ----------
 # + git/locales para clonar y es_CL.UTF-8
 # + toolchain/libs para compilar e integrar libs crypto/XML

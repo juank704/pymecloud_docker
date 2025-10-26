@@ -111,6 +111,7 @@ services:
     ports:
       - "8069:8069"
       - "8072:8072"
+      - "5678:5678"   # DEBUG PYTHON
 
   # Backups programados (usa pg_dump desde un contenedor liviano con cron)
   pgbackup:
