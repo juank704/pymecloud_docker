@@ -1,0 +1,17 @@
+# Normalizar texto por defecto a LF en el repo
+* text=auto eol=lf
+
+# Archivos sensibles a LF (Linux/Docker)
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+*.dockerfile  text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.env         text eol=lf
+*.env.example text eol=lf
+*.py          text eol=lf
+*.md          text eol=lf
+
+# Archivos Windows que deben quedar CRLF
+*.bat         text eol=crlf
+*.ps1         text eol=crlf
