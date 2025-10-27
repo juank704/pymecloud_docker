@@ -11,7 +11,12 @@ echo
 
 # === Cargar variables del archivo .env ===
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    # Cargar solo las variables de entorno válidas (formato VARIABLE=valor sin espacios)
+    while IFS='=' read -r key value; do
+        if [[ $key =~ ^[A-Z_][A-Z0-9_]*$ ]] && [[ -n $value ]]; then
+            export "$key=$value"
+        fi
+    done < <(grep -E '^[A-Z_][A-Z0-9_]*=' .env)
 else
     echo "❌ No se encontró el archivo .env en el directorio actual."
     exit 1
