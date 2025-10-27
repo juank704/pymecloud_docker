@@ -106,7 +106,7 @@ services:
       # Si prefieres seguir usando tu entrypoint por volumen (sin tocar ENTRYPOINT de la imagen):
       - ./odoo/entrypoint.sh:/entrypoint.sh
     # Si usas el entrypoint por volumen:
-    entrypoint: ["/entrypoint.sh"]
+    #entrypoint: ["/entrypoint.sh"]
     # Si usaste ENTRYPOINT en el Dockerfile, puedes comentar la línea anterior.
     ports:
       - "8069:8069"

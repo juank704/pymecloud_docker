@@ -117,3 +117,10 @@ psql:
 
 ping:
 	@$(COMPOSE) exec -T $(SERVICE_DB) bash -lc 'pg_isready -h 127.0.0.1 -p $${PGPORT:-5432} -U $$POSTGRES_USER'
+
+# =======================
+# Limpieza total de Docker
+# =======================
+# Limpia TODO Docker (contenedores, imágenes, redes, volúmenes)
+delete:  ## limpia TODO Docker
+	$(COMPOSE) down -v --rmi all --remove-orphans

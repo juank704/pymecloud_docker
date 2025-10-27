@@ -1,41 +1,44 @@
-# -*- coding: utf-8 -*-
+import re
 from odoo import api, models
 
+_R_ONLY_DIGITS_K = re.compile(r'[^0-9K]')
+
 class ResPartner(models.Model):
-    _inherit = "res.partner"
+    _inherit = 'res.partner'
 
-    def _normalize_cl_vat(self, vat):
-        v = (vat or '').upper().strip()
-        v = v.replace('.', '').replace(' ', '')
-        # quitar CL si viene, y guiones para calcular clean
-        if v.startswith('CL'):
-            v = v[2:]
-        v = v.replace('-', '')
-        if not v:
-            return vat
-        # reponer guion verificador y prefijo CL
-        cuerpo, dv = v[:-1], v[-1]
-        return f"CL{cuerpo}-{dv}"
+    # 1) Override del normalizador que llama base_vat.write()
+    def _fix_vat_number(self, vat, country_id):
+        country = self.env['res.country'].browse(country_id) if country_id else False
+        if country and country.code == 'CL' and vat:
+            # quita CL y deja solo dígitos + K
+            raw = str(vat).upper().replace('CL', '')
+            clean = _R_ONLY_DIGITS_K.sub('', raw)
+            if len(clean) >= 2:
+                number, dv = clean[:-1], clean[-1]
+                # <<< formato que pasa el validador CHL: CL########-# >>>
+                return f"CL{number}{dv}"
+        # para otros países, usa el comportamiento estándar
+        return super()._fix_vat_number(vat, country_id)
 
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            # si el partner es chileno, normaliza ANTES de crear
-            country_id = vals.get('country_id')
-            if country_id:
-                country = self.env['res.country'].browse(country_id)
-                if country.code == 'CL' and vals.get('vat'):
-                    vals['vat'] = self._normalize_cl_vat(vals['vat'])
-        return super().create(vals_list)
+    # 2) (Opcional pero recomendable) Mantener document_number “bonito” sin CL
+    def _normalize_document_number_if_cl(self, vals, partner=None):
+        vals = dict(vals or {})
+        country_id = vals.get('country_id') or (partner and partner.country_id.id)
+        if not country_id:
+            return vals
+        if self.env['res.country'].browse(country_id).code != 'CL':
+            return vals
+
+        dn = (vals.get('document_number') or '').upper()
+        if dn.startswith('CL'):
+            vals['document_number'] = dn.replace('CL', '', 1)  # quita el prefijo
+        return vals
+
+    @api.model
+    def create(self, vals):
+        vals = self._normalize_document_number_if_cl(vals)
+        return super().create(vals)
 
     def write(self, vals):
-        # normaliza ANTES del super para pasar la constraint de base_vat
-        vals = vals.copy()
-        if 'vat' in vals:
-            # para cada registro, si es CL, normaliza
-            for rec in self:
-                if (rec.country_id and rec.country_id.code == 'CL') or \
-                   (vals.get('country_id') and self.env['res.country'].browse(vals['country_id']).code == 'CL'):
-                    vals['vat'] = self._normalize_cl_vat(vals['vat'])
-                    break  # mismo valor para todos en esta llamada
+        vals = self._normalize_document_number_if_cl(vals)
         return super().write(vals)

@@ -57,4 +57,4 @@ RUN chmod +x /usr/local/bin/odoo-entrypoint.sh
 # ENTRYPOINT ["/usr/local/bin/odoo-entrypoint.sh"]
 
 USER odoo
-EXPOSE 8069 8072
+EXPOSE 8069 8072 5678

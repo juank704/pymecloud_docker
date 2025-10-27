@@ -27,19 +27,20 @@ addons_path = /usr/lib/python3/dist-packages/odoo/addons,${ADDONS_PATH}
 
 gevent_port = 8072
 limit_time_poll = 3600
+data_dir = /var/lib/odoo/.local/share/Odoo
 
 # Producción ligera
-proxy_mode = True
+#proxy_mode = True
 #workers = 4
 #max_cron_threads = 2
 #limit_time_cpu = 120
 #limit_time_real = 240
 
 # DEBUG MODE
-#proxy_mode = False           ; opcional, simplifica si accedes directo a localhost:8069
-workers = 0                  ; debe ser 0 para que debugpy funcione
-max_cron_threads = 0         ; opcional: evita hilos cron paralelos
-limit_time_cpu = 0           ; sin límite para depurar tranquilo
+proxy_mode = False
+workers = 0
+max_cron_threads = 0
+limit_time_cpu = 0
 limit_time_real = 0
 
 
@@ -50,7 +51,13 @@ echo "Generated $ODOO_CONF"
 # ✅ Ejecuta Odoo directamente (evita recursión)
 #exec odoo -c "$ODOO_CONF" "$@"
 
-exec python -m debugpy --wait-for-client --listen 0.0.0.0:5678 -m odoo -c "$ODOO_CONF" "$@"
+#exec python3 -m debugpy --listen 0.0.0.0:5678 -m odoo -c "$ODOO_CONF" "$@"
+
+#exec python3 -m debugpy --listen 0.0.0.0:5678 -- /usr/bin/odoo --config "$ODOO_CONF" "$@"
+
+#exec python3 -m debugpy --listen 0.0.0.0:5678 /usr/bin/odoo --config "$ODOO_CONF" "$@"
+
+exec python3 -m debugpy --listen 0.0.0.0:5678 --wait-for-client /usr/bin/odoo --config "$ODOO_CONF"
 
 # Alternativa si NO montas tu script sobre el entrypoint original:
 # exec /usr/bin/entrypoint.sh odoo -c "$ODOO_CONF"
