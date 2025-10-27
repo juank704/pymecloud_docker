@@ -77,7 +77,7 @@ docker compose run --rm --no-deps --entrypoint odoo odoo ^
   --db_user=%POSTGRES_USER% ^
   --db_password=%POSTGRES_PASSWORD% ^
   -d %POSTGRES_DB% ^
-  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe ^
+  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe,disable_cl_vat_strict ^
   --load-language=es_CL --without-demo=none --stop-after-init --http-port=8070
 
 
@@ -98,14 +98,18 @@ REM ===================================================
 echo 🔄 Reiniciando servicio Odoo...
 docker compose restart %APP_SVC%
 
+echo 🔄 Recreating nginx
+docker compose up -d --force-recreate nginx
+
 REM ===================================================
 REM 6) Mostrar logs y abrir navegador
 REM ===================================================
 echo 🔭 Mostrando logs (se abre otra ventana)...
 start cmd /k "docker compose logs -f %APP_SVC%"
 
-echo 🌐 Abriendo Odoo en http://localhost:8069
-start http://localhost:8069
+echo 🌐 Abriendo Odoo en http://localhost
+start http://localhost
+
 
 echo ✅ Todo listo. Odoo ejecutándose.
 pause
