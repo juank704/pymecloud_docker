@@ -1,0 +1,3 @@
+# Ignorar módulos copiados localmente
+custom_addons/l10n_cl_fe/
+custom_addons/l10n_cl_chart_of_account/

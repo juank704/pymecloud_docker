@@ -32,3 +32,5 @@
 - **RUT**: La normalización elimina puntos, homogeneiza mayúsculas y fuerza el prefijo CL.
 - Si existe l10n_cl_document_number, el módulo lo respeta; en su ausencia utiliza vat.
 - Se agregaron tests unitarios básicos para normalización y DV.
+
+- **Modulos Delete**: Borrar Modulos Copiados Localmente + .gitignore
