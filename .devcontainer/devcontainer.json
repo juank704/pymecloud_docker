@@ -1,6 +1,6 @@
 {
   "name": "Odoo Dev (Codespaces)",
-  "dockerComposeFile": ["../docker-compose.yml"],
+  "dockerComposeFile": ["./docker-compose.yml"],
   "service": "odoo",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "forwardPorts": [8069, 8072, 5432],
