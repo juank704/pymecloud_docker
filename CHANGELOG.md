@@ -22,3 +22,13 @@
 - macOS (Darwin 24.2.0)
 - Docker Desktop para Mac
 - Odoo 16.0 con módulos de localización chilena (l10n_cl_fe, l10n_cl_chart_of_account)
+
+## [2025-10-27] - Debug + Modulo para leer RUT
+
+### Arreglado 
+- **Debug**: El attach se hace a localhost:5678 (VS Code → Python: Attach using debugpy).
+- Recomendado activar solo en entornos de desarrollo (no exponer 5678 públicamente).
+
+- **RUT**: La normalización elimina puntos, homogeneiza mayúsculas y fuerza el prefijo CL.
+- Si existe l10n_cl_document_number, el módulo lo respeta; en su ausencia utiliza vat.
+- Se agregaron tests unitarios básicos para normalización y DV.

@@ -5,9 +5,6 @@ COMPOSE      = docker compose
 SERVICE_APP  = odoo_app
 SERVICE_DB   = odoo_db
 
-# Nota: lee variables desde tu .env (recomendado)
-# Debes tener ODOO_DB_NAME, POSTGRES_USER, POSTGRES_DB definidos en .env
-
 # =======================
 # Helpers
 # =======================
@@ -25,15 +22,6 @@ logs:
 down:
 	$(COMPOSE) down
 
-# Esperar a que Postgres esté listo
-#wait-db:
-#	@echo "Esperando a que Postgres responda..."
-#	@$(COMPOSE) exec -T $(SERVICE_DB) bash -lc '\
-#		until pg_isready -h $$PGHOST -p $${PGPORT:-5432} -U $$POSTGRES_USER >/dev/null 2>&1; do \
-#			echo "  - DB no lista aún..."; sleep 2; \
-#		done; \
-#		echo "DB OK"'
-
 wait-db:
 	@echo "Esperando a que Postgres responda..."
 	@$(COMPOSE) exec -T $(SERVICE_DB) bash -lc '\
@@ -41,20 +29,6 @@ wait-db:
 			echo "  - DB no lista aún..."; sleep 2; \
 		done; \
 		echo "DB OK"'
-
-# Crear la base si no existe (usa POSTGRES_DB/ODOO_DB_NAME del entorno)
-#create-db: wait-db
-#	@$(COMPOSE) exec -T $(SERVICE_DB) bash -lc '\
-#		DB_NAME=$${ODOO_DB_NAME:-$$POSTGRES_DB}; \
-#		echo "Verificando DB $$DB_NAME..."; \
-#		EXISTS=$$(psql -U $$POSTGRES_USER -tAc "SELECT 1 FROM pg_database WHERE datname='\''$$DB_NAME'\''"); \
-#		if [ "$$EXISTS" = "1" ]; then \
-#		  echo "DB $$DB_NAME ya existe."; \
-#		else \
-#		  echo "Creando DB $$DB_NAME..."; \
-#		  createdb -U $$POSTGRES_USER $$DB_NAME; \
-#		  echo "DB creada."; \
-#		fi'
 
 create-db: wait-db
 	@$(COMPOSE) exec -T $(SERVICE_DB) bash -lc '\

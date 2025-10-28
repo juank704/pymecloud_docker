@@ -62,6 +62,9 @@ if errorlevel 1 (
 )
 echo ✅ DB OK
 
+REM --Copiar Archivos Baked_Addons to Extra_Addons
+docker compose exec odoo bash -lc "cp -rn /opt/baked-addons/* /mnt/extra-addons/"
+
 REM ===================================================
 REM 4) Crear esquema y módulos Odoo por CLI
 REM ===================================================
@@ -77,9 +80,8 @@ docker compose run --rm --no-deps --entrypoint odoo odoo ^
   --db_user=%POSTGRES_USER% ^
   --db_password=%POSTGRES_PASSWORD% ^
   -d %POSTGRES_DB% ^
-  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe,disable_cl_vat_strict ^
+  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe,custom_disable_cl_vat ^
   --load-language=es_CL --without-demo=none --stop-after-init --http-port=8070
-
 
 if errorlevel 1 (
   echo ❌ Error inicializando la base de datos de Odoo.
