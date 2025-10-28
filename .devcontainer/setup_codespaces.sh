@@ -1,101 +1,79 @@
-#!/bin/bash
-set -e
-set -o pipefail
+#!/usr/bin/env bash
+set -euo pipefail
 
-# ==============================================
-#  Odoo + CL - Instalación automática (Linux)
-# ==============================================
+echo "🚀 Setup Odoo + Chile en Codespaces"
 
-echo "🚀 Iniciando instalación automática de Odoo + Chile..."
-echo
-
-# === Cargar variables del archivo .env ===
-if [ -f .env ]; then
-    # Cargar solo las variables de entorno válidas (formato VARIABLE=valor sin espacios)
-    while IFS='=' read -r key value; do
-        if [[ $key =~ ^[A-Z_][A-Z0-9_]*$ ]] && [[ -n $value ]]; then
-            export "$key=$value"
-        fi
-    done < <(grep -E '^[A-Z_][A-Z0-9_]*=' .env)
+# === Cargar .env (solo pares VAR=valor válidos) ===
+ENV_FILE="/workspaces/${localWorkspaceFolderBasename:-pymecloud_docker}/.env"
+if [ -f "$ENV_FILE" ]; then
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
+      export "$line"
+    fi
+  done < "$ENV_FILE"
 else
-    echo "❌ No se encontró el archivo .env en el directorio actual."
-    exit 1
+  echo "⚠️ No se encontró .env en $ENV_FILE (usando defaults)"
 fi
 
-# === Mostrar variables cargadas ===
-echo "ODOO_VERSION=$ODOO_VERSION"
-echo "POSTGRES_VERSION=$POSTGRES_VERSION"
-echo "POSTGRES_DB=$POSTGRES_DB"
-echo "POSTGRES_USER=$POSTGRES_USER"
-echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
-echo "ODOO_ADMIN_PASS=$ODOO_ADMIN_PASS"
-echo "ODOO_DB_HOST=$ODOO_DB_HOST"
-echo "ODOO_DB_PORT=$ODOO_DB_PORT"
-echo
+# Defaults por si faltan en .env
+ODOO_DB_HOST="${ODOO_DB_HOST:-db}"
+ODOO_DB_PORT="${ODOO_DB_PORT:-5432}"
+POSTGRES_DB="${POSTGRES_DB:-odoo}"
+POSTGRES_USER="${POSTGRES_USER:-odoo}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-odoo}"
 
-APP_SVC="odoo"
-DB_SVC="db"
-DB_CTN="odoo_db"
-ODOO_DB_NAME="odoo"
+echo "🔧 Variables:"
+echo "  ODOO_DB_HOST=$ODOO_DB_HOST"
+echo "  ODOO_DB_PORT=$ODOO_DB_PORT"
+echo "  POSTGRES_DB=$POSTGRES_DB"
+echo "  POSTGRES_USER=$POSTGRES_USER"
 
-echo "🚀 Levantando y construyendo contenedores..."
-docker compose up -d --build
-
-# ===================================================
-# 3) Esperar a que la DB esté healthy
-# ===================================================
-echo "⏳ Esperando a que la DB esté lista (healthy)..."
-
-until docker compose exec -T "$DB_SVC" pg_isready -h 127.0.0.1 -p "$ODOO_DB_PORT" -U "$POSTGRES_USER" > /dev/null 2>&1; do
-    echo "   - DB aún no responde, reintentando..."
-    sleep 3
+# === Esperar DB (desde el contenedor odoo, sin docker compose) ===
+echo "⏳ Esperando a que la DB esté lista..."
+until pg_isready -h "$ODOO_DB_HOST" -p "$ODOO_DB_PORT" -U "$POSTGRES_USER" >/dev/null 2>&1; do
+  echo "   - DB aún no responde, reintentando..."
+  sleep 3
 done
 echo "✅ DB OK"
 
-echo "Copiar Archivos Baked_Addons to Extra_Addons"
-docker compose exec odoo bash -lc "cp -rn /opt/baked-addons/* /mnt/extra-addons/"
+# === Copiar baked-addons → extra-addons (no sobrescribir, sin chown) ===
+if [ -d /opt/baked-addons ]; then
+  echo "📦 Copiando /opt/baked-addons → /mnt/extra-addons (sin sobrescribir)..."
+  cp -rn /opt/baked-addons/* /mnt/extra-addons/ 2>/dev/null || true
+fi
 
-# ===================================================
-# 4) Crear esquema y módulos Odoo por CLI
-# ===================================================
-echo "🧩 Deteniendo Odoo para inicializar base de datos..."
-docker compose stop "$APP_SVC" >/dev/null 2>&1 || true
+# === Instalar / actualizar módulos por CLI (dentro del contenedor) ===
+# Usa ODOO_INIT=1 para forzar instalación (-i) en una DB nueva.
+MODULES="l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe,custom_disable_cl_vat"
+if [ "${ODOO_INIT:-0}" = "1" ]; then
+  ACTION="-i $MODULES"
+  echo "🧩 Inicializando módulos: $MODULES"
+else
+  ACTION="-u $MODULES"
+  echo "🧩 Actualizando módulos: $MODULES"
+fi
 
-echo "📦 Instalando módulos Odoo con demo data..."
-docker compose run --rm --no-deps --entrypoint odoo odoo \
+set +e
+odoo \
   --db_host="$ODOO_DB_HOST" \
   --db_port="$ODOO_DB_PORT" \
   --db_user="$POSTGRES_USER" \
   --db_password="$POSTGRES_PASSWORD" \
   -d "$POSTGRES_DB" \
-  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe,custom_disable_cl_vat \
+  $ACTION \
   --load-language=es_CL \
   --without-demo=none \
   --stop-after-init \
-  --http-port=8070 || {
-      echo "❌ Error inicializando la base de datos de Odoo."
-      exit 1
-  }
+  --http-port=8070
+rc=$?
+set -e
 
-echo "✅ Esquemas creados correctamente."
-
-# ===================================================
-# 5) Reiniciar Odoo normalmente
-# ===================================================
-echo "🔄 Reiniciando servicio Odoo..."
-docker compose up -d "$APP_SVC"
-
-# ===================================================
-# 6) Mostrar logs y abrir navegador
-# ===================================================
-echo "🔭 Mostrando logs (Ctrl+C para salir)..."
-docker compose logs -f "$APP_SVC" &
-sleep 3
-
-URL="http://localhost"
-echo "🌐 Abriendo Odoo en $URL"
-if command -v xdg-open &> /dev/null; then
-    xdg-open "$URL" >/dev/null 2>&1 || true
+if [ $rc -ne 0 ]; then
+  echo "❌ Error inicializando/actualizando módulos (rc=$rc)."
+  echo "   - Si la DB es nueva, reintenta con: ODOO_INIT=1"
+  exit $rc
 fi
 
-echo "✅ Todo listo. Odoo ejecutándose."
+echo "🎉 Setup listo. Abre Odoo en el puerto 8069."
+echo "💡 En Codespaces, marca el puerto 8069 como Public en la pestaña Ports."

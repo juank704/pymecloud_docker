@@ -96,6 +96,9 @@ echo "✅ Esquemas creados correctamente."
 echo "🔄 Reiniciando servicio Odoo..."
 docker compose up -d "$APP_SVC"
 
+echo 🔄 Recreating nginx
+docker compose up -d --force-recreate nginx
+
 # ===================================================
 # 6) Mostrar logs y abrir navegador
 # ===================================================
