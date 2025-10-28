@@ -70,7 +70,6 @@ REM 4) Crear esquema y módulos Odoo por CLI
 REM ===================================================
 
 REM Odoo apagado para que no choque el puerto 8069
-docker compose stop odoo
 docker compose stop %APP_SVC%
 
 REM --- Instalar módulos por CLI (Opción A: forzar credenciales y puerto temporal) ---

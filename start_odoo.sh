@@ -63,6 +63,9 @@ until docker compose exec -T "$DB_SVC" pg_isready -h 127.0.0.1 -p "$ODOO_DB_PORT
 done
 echo "✅ DB OK"
 
+echo "Copiar Archivos Baked_Addons to Extra_Addons"
+docker compose exec odoo bash -lc "cp -rn /opt/baked-addons/* /mnt/extra-addons/"
+
 # ===================================================
 # 4) Crear esquema y módulos Odoo por CLI
 # ===================================================
@@ -76,7 +79,7 @@ docker compose run --rm --no-deps --entrypoint odoo odoo \
   --db_user="$POSTGRES_USER" \
   --db_password="$POSTGRES_PASSWORD" \
   -d "$POSTGRES_DB" \
-  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe \
+  -i base,l10n_cl,l10n_cl_chart_of_account,l10n_cl_fe,custom_disable_cl_vat \
   --load-language=es_CL \
   --without-demo=none \
   --stop-after-init \
@@ -100,7 +103,7 @@ echo "🔭 Mostrando logs (Ctrl+C para salir)..."
 docker compose logs -f "$APP_SVC" &
 sleep 3
 
-URL="http://localhost:8069"
+URL="http://localhost"
 echo "🌐 Abriendo Odoo en $URL"
 if command -v xdg-open &> /dev/null; then
     xdg-open "$URL" >/dev/null 2>&1 || true

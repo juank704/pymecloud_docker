@@ -34,3 +34,5 @@
 - Se agregaron tests unitarios básicos para normalización y DV.
 
 - **Modulos Delete**: Borrar Modulos Copiados Localmente + .gitignore
+
+- **Crear CodeSpaces**: Crear CodeSpaces para GITHUB test
