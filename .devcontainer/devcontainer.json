@@ -4,8 +4,8 @@
   "service": "odoo",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "forwardPorts": [8069, 8072, 5432],
-  "postCreateCommand": "chmod +x /workspaces/${localWorkspaceFolderBasename}/start_odoo.sh || true",
-  "postStartCommand": "/workspaces/${localWorkspaceFolderBasename}/start_odoo.sh || true",
+  "postCreateCommand": "chmod +x /workspaces/${localWorkspaceFolderBasename}/.devcontainer/setup_codespaces.sh || true",
+  "postStartCommand": "/workspaces/${localWorkspaceFolderBasename}/.devcontainer/setup_codespaces.sh || true",
   "remoteEnv": {
     "PYTHONUNBUFFERED": "1"
   }
