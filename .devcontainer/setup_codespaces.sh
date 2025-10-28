@@ -75,5 +75,8 @@ if [ $rc -ne 0 ]; then
   exit $rc
 fi
 
+nohup odoo -c /etc/odoo/odoo.conf >/tmp/odoo.log 2>&1 &
+echo "Odoo iniciado en background (logs: /tmp/odoo.log)"
+
 echo "🎉 Setup listo. Abre Odoo en el puerto 8069."
 echo "💡 En Codespaces, marca el puerto 8069 como Public en la pestaña Ports."
