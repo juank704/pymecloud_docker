@@ -64,7 +64,12 @@ done
 echo "✅ DB OK"
 
 echo "Copiar Archivos Baked_Addons to Extra_Addons"
-docker compose exec odoo bash -lc "cp -rn /opt/baked-addons/* /mnt/extra-addons/"
+docker compose exec -u root odoo bash -lc '
+  mkdir -p /mnt/extra-addons &&
+  chown -R odoo:odoo /mnt/extra-addons &&
+  cp -rn /opt/baked-addons/* /mnt/extra-addons/ 2>/dev/null || true &&
+  chown -R odoo:odoo /mnt/extra-addons
+'
 
 # ===================================================
 # 4) Crear esquema y módulos Odoo por CLI
